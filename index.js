@@ -4,13 +4,13 @@ const { v4: uuidv4 } = require("uuid");
 const app = express();
 app.use(express.json());
 
-const costumers = [];
+const customers = [];
 
 // Middleware
 function verifyIfExistsAccountCPF(request, response, next) {
   const { cpf } = request.headers;
 
-  const customer = costumers.find((customer) => customer.cpf === cpf);
+  const customer = customers.find((customer) => customer.cpf === cpf);
 
   if (!customer) {
     return response.status(400).json({ error: "Customer not found!" });
@@ -36,7 +36,7 @@ function getBalance(statement) {
 app.post("/account", (request, response) => {
   const { cpf, name } = request.body;
 
-  const customerAlreadyExists = costumers.some(
+  const customerAlreadyExists = customers.some(
     (customer) => customer.cpf === cpf
   );
 
@@ -44,7 +44,7 @@ app.post("/account", (request, response) => {
     return response.status(400).json({ error: "Customer already exists!" });
   }
 
-  costumers.push({
+  customers.push({
     cpf,
     name,
     id: uuidv4(),
@@ -67,6 +67,15 @@ app.get("/account", verifyIfExistsAccountCPF, (request, response) => {
   const { customer } = request;
 
   return response.json(customer);
+});
+
+app.delete("/account", verifyIfExistsAccountCPF, (request, response) => {
+  const { customer } = request;
+
+  // splice
+  customers.splice(customer, 1);
+
+  return response.status(200).json(customers);
 });
 
 app.get("/statement", verifyIfExistsAccountCPF, (request, response) => {
@@ -127,6 +136,14 @@ app.post("/withdraw", verifyIfExistsAccountCPF, (request, response) => {
   customer.statement.push(statementOperation);
 
   return response.status(201).send();
+});
+
+app.get("/balance", verifyIfExistsAccountCPF, (request, response) => {
+  const { customer } = request;
+
+  const balance = getBalance(customer.statement);
+
+  return response.json(balance);
 });
 
 app.listen(3333);
